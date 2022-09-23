@@ -20,7 +20,6 @@ import org.apache.spark.sql.delta.{DeltaErrors, DeltaOperations}
 import org.apache.spark.sql.delta.actions.{Action, AddCDCFile, AddFile, CommitInfo, FileAction, Metadata, Protocol, RemoveFile, SetTransaction}
 import org.apache.spark.sql.delta.commands.cdc.CDCReader
 import org.apache.spark.sql.delta.schema.SchemaUtils
-
 import org.apache.spark.sql.DataFrame
 
 /**
@@ -192,7 +191,8 @@ trait DeltaSourceCDCSupport { self: DeltaSource =>
 
     /** Returns matching files that were added on or after startVersion among delta logs. */
     def filterAndIndexDeltaLogs(startVersion: Long): Iterator[(Long, IndexedChangeFileSeq)] = {
-      deltaLog.getChanges(startVersion, options.failOnDataLoss).map { case (version, actions) =>
+      deltaLog.getChanges(startVersion, options.failOnDataLoss).collect { case (version, actions)
+        if version <= options.endingVersion.version =>
         // skipIndexedFile must be applied after creating IndexedFile so that
         // IndexedFile.index is consistent across all versions.
         val (fileActions, skipIndexedFile) =

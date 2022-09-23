@@ -184,6 +184,16 @@ trait DeltaReadOptions extends DeltaOptionParser {
       }
   }
 
+  val endingVersion: DeltaEndingVersion = options.get(CDC_END_VERSION) match {
+    case Some("latest") | None => EndingVersionLatest
+    case Some(str) =>
+      Try(str.toLong).toOption.filter(_ >= 0).map(EndingVersion).getOrElse{
+        throw DeltaErrors.illegalDeltaOptionException(
+          CDC_END_VERSION, str, "must be greater than or equal to zero")
+      }
+  }
+
+
   val startingTimestamp = options.get(STARTING_TIMESTAMP_OPTION)
 
   private def provideOneStartingOption(): Unit = {
@@ -304,3 +314,10 @@ object DeltaOptions extends DeltaLogging {
 sealed trait DeltaStartingVersion
 case object StartingVersionLatest extends DeltaStartingVersion
 case class StartingVersion(version: Long) extends DeltaStartingVersion
+
+/**
+ * Definitions for the ending version of a Delta stream.
+ */
+sealed trait DeltaEndingVersion { def version: Long }
+case object EndingVersionLatest extends DeltaEndingVersion { val version = Long.MaxValue }
+case class EndingVersion(version: Long) extends DeltaEndingVersion
